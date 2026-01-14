@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "composite": true,
+    "paths": {
+      "@lowcode-lite/core": ["./packages/core/src"],
+      "@lowcode-lite/core/*": ["./packages/core/src/*"],
+      "@lowcode-lite/editor": ["./packages/editor/src"],
+      "@lowcode-lite/editor/*": ["./packages/editor/src/*"],
+      "@lowcode-lite/components": ["./packages/components/src"],
+      "@lowcode-lite/components/*": ["./packages/components/src/*"],
+      "@lowcode-lite/shared": ["./packages/shared/src"],
+      "@lowcode-lite/shared/*": ["./packages/shared/src/*"],
+      "@lowcode-lite/ui": ["./packages/ui/src"],
+      "@lowcode-lite/ui/*": ["./packages/ui/src/*"]
+    }
+  },
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/editor" },
+    { "path": "./packages/components" },
+    { "path": "./packages/shared" },
+    { "path": "./packages/ui" },
+    { "path": "./packages/server" },
+    { "path": "./apps/web" }
+  ]
+}

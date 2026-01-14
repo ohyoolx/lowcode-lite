@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@lowcode-lite/core": ["../../packages/core/src"],
+      "@lowcode-lite/core/*": ["../../packages/core/src/*"],
+      "@lowcode-lite/shared": ["../../packages/shared/src"],
+      "@lowcode-lite/shared/*": ["../../packages/shared/src/*"],
+      "@lowcode-lite/ui": ["../../packages/ui/src"],
+      "@lowcode-lite/ui/*": ["../../packages/ui/src/*"],
+      "@lowcode-lite/components": ["../../packages/components/src"],
+      "@lowcode-lite/components/*": ["../../packages/components/src/*"]
+    }
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/core" },
+    { "path": "../../packages/shared" },
+    { "path": "../../packages/ui" },
+    { "path": "../../packages/components" }
+  ]
+}

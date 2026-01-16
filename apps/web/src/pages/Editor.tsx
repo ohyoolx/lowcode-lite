@@ -22,10 +22,12 @@ registerBuiltinComponents();
 
 function EditorContent({
   onSave,
+  onRename,
   saving,
   appName,
 }: {
-  onSave: () => void;
+  onSave: () => Promise<void>;
+  onRename: (newName: string) => Promise<void>;
   saving: boolean;
   appName: string;
 }) {
@@ -130,6 +132,7 @@ function EditorContent({
         className="editor-header"
         appName={appName}
         onSave={onSave}
+        onRename={onRename}
         saving={saving}
       />
       
@@ -202,7 +205,7 @@ function EditorContent({
           )}
         >
           <Globe className="h-4 w-4" />
-          <span className="text-sm font-medium">查询</span>
+          <span className="text-sm font-medium">数据源</span>
           <ChevronUp className="h-4 w-4" />
         </button>
       )}
@@ -262,26 +265,18 @@ export function Editor() {
       await appsApi.update(id, {
         schema: appContext.toJSON(),
       });
-      console.log('保存成功');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : '保存失败');
     } finally {
       setSaving(false);
     }
   }, [id, appContext]);
 
-  // 键盘快捷键保存
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        handleSave();
-      }
-    };
+  // 重命名应用
+  const handleRename = useCallback(async (newName: string) => {
+    if (!id) return;
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave]);
+    await appsApi.update(id, { name: newName });
+    setAppName(newName);
+  }, [id]);
 
   // Loading State
   if (loading) {
@@ -321,7 +316,7 @@ export function Editor() {
 
   return (
     <AppProvider context={appContext}>
-      <EditorContent onSave={handleSave} saving={saving} appName={appName} />
+      <EditorContent onSave={handleSave} onRename={handleRename} saving={saving} appName={appName} />
     </AppProvider>
   );
 }

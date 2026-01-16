@@ -43,8 +43,20 @@ export const TableComp = defineComp({
     emptyText: prop.string('暂无数据'),
   },
   
-  expose: {
-    states: ['data'],
+  // 使用 exposeComputed 来暴露计算后的值（解析后的数组而非原始 JSON 字符串）
+  exposeComputed: (props) => {
+    // 解析 data 字符串为数组
+    let parsedData: Record<string, unknown>[] = [];
+    try {
+      const dataValue = typeof props.data === 'string' ? props.data : JSON.stringify(props.data);
+      parsedData = JSON.parse(dataValue);
+    } catch {
+      parsedData = [];
+    }
+    
+    return {
+      data: parsedData,
+    };
   },
   
   defaultSize: { w: 16, h: 12 },

@@ -5,31 +5,12 @@ import {
   isSimpleExpression,
   isSimplePropertyPath,
 } from './utils';
-
-/**
- * 安全的表达式求值器
- * 使用 Function 构造器创建沙箱环境
- */
-function safeEvaluate(code: string, context: Record<string, any>): any {
-  const contextKeys = Object.keys(context);
-  const contextValues = Object.values(context);
-  
-  try {
-    // 创建沙箱函数
-    const fn = new Function(
-      ...contextKeys,
-      `"use strict"; return (${code});`
-    );
-    
-    return fn(...contextValues);
-  } catch (error) {
-    throw new Error(`Expression evaluation failed: ${code}\n${error}`);
-  }
-}
+import { evalInSandbox } from './sandbox';
 
 /**
  * 求值表达式
  * 支持简单属性引用和复杂表达式
+ * 注意：表达式需要用 {{}} 包裹
  */
 export function evaluateExpr(expr: string, context: Record<string, any>): any {
   // 提取表达式内容
@@ -44,7 +25,29 @@ export function evaluateExpr(expr: string, context: Record<string, any>): any {
   }
   
   // 复杂表达式: {{button1.text + ' - ' + input1.value}}
-  return safeEvaluate(content, context);
+  // 支持完整的 JavaScript 语法，包括数组方法、lodash 等
+  return evalInSandbox(content, context);
+}
+
+/**
+ * 求值纯表达式（不需要 {{}} 包裹）
+ * 用于 DataResponder 的 watch 表达式和 Transformer 的代码求值
+ */
+export function evaluatePureExpr(expr: string, context: Record<string, any>): any {
+  const trimmedExpr = expr.trim();
+  
+  if (!trimmedExpr) {
+    return undefined;
+  }
+  
+  // 简单属性引用: select1.value
+  if (isSimplePropertyPath(trimmedExpr)) {
+    return getValueByPath(context, trimmedExpr);
+  }
+  
+  // 复杂表达式: button1.text + ' - ' + input1.value
+  // 支持完整的 JavaScript 语法
+  return evalInSandbox(trimmedExpr, context);
 }
 
 /**
@@ -73,7 +76,7 @@ export function evaluateTemplate(
       }
       
       // 复杂表达式
-      const result = safeEvaluate(trimmedExpr, context);
+      const result = evalInSandbox(trimmedExpr, context);
       return String(result ?? '');
     } catch (error) {
       console.warn('Template expression failed:', match, error);
@@ -105,6 +108,12 @@ export function getExpressionDependencies(expr: string): string[] {
       'function', 'var', 'let', 'const',
       'Math', 'Date', 'String', 'Number', 'Boolean', 'Array', 'Object',
       'JSON', 'console',
+      '_', // lodash
+      'parseInt', 'parseFloat', 'isNaN', 'isFinite',
+      'encodeURI', 'decodeURI', 'encodeURIComponent', 'decodeURIComponent',
+      'NaN', 'Infinity',
+      'filter', 'map', 'reduce', 'find', 'some', 'every', 'includes',
+      'item', 'index', 'arr', 'acc', 'val', 'key', 'value', // 常用回调参数名
     ];
     
     if (!keywords.includes(identifier)) {

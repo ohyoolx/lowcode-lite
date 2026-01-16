@@ -11,7 +11,6 @@
 | **目标用户** | 普通用户（快速搭建）+ 深度用户（组件扩展） |
 | **核心理念** | 简单优先，渐进增强 |
 | **技术栈** | React + Signals + Bun |
-| **与 OpenBlocks 的区别** | 更轻量的架构，更低的学习曲线 |
 
 ### 1.2 核心目标
 
@@ -399,6 +398,82 @@ export function evaluateTemplate(
     }
   });
 }
+```
+
+### 3.4 表达式编辑器
+
+表达式编辑器 (`ExpressionEditor`) 是一个专门用于输入和编辑表达式的 UI 组件，支持以下功能：
+
+#### 3.4.1 核心功能
+
+- **{{}} 语法识别**：自动检测输入中的 `{{expression}}` 语法
+- **自动补全**：输入 `{{` 后显示可用的组件名和属性名
+- **实时求值预览**：在输入框下方显示表达式的计算结果
+- **错误提示**：表达式求值失败时显示错误信息
+
+#### 3.4.2 集成方式
+
+```typescript
+// apps/web/src/components/ui/ExpressionEditor.tsx
+
+interface ExpressionEditorProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  currentComponentName?: string; // 排除当前组件的自引用
+}
+
+// 在 PropertyPanel 中使用
+<ExpressionEditor
+  value={props.content}
+  onChange={(v) => handlePropChange('content', v)}
+  placeholder="输入值或表达式 {{}}"
+  currentComponentName={selectedComponent.name}
+/>
+```
+
+#### 3.4.3 画布组件求值
+
+组件在画布上渲染时会自动对包含表达式的属性进行求值：
+
+```typescript
+// apps/web/src/components/canvas/ComponentWrapper.tsx
+
+// 获取表达式求值上下文
+const expressionContext = appContext.getExpressionContext();
+
+// 解析 props（支持表达式求值）
+const resolvedProps = useMemo(() => {
+  const result: Record<string, any> = {};
+  
+  for (const [key, propDef] of Object.entries(definition.props)) {
+    const rawValue = data.props[key] ?? propDef.default;
+    
+    // 如果包含表达式 {{}}，进行求值
+    if (typeof rawValue === 'string' && rawValue.includes('{{') && rawValue.includes('}}')) {
+      result[key] = evaluateTemplate(rawValue, expressionContext);
+    } else {
+      result[key] = rawValue;
+    }
+  }
+  
+  return result;
+}, [definition.props, data.props, expressionContext]);
+```
+
+#### 3.4.4 使用示例
+
+```
+// 简单引用
+{{input1.value}}           // 获取 input1 组件的值
+{{table1.data}}            // 获取 table1 组件的数据
+
+// 混合文本
+你输入的内容是: {{input1.value}}
+
+// 复杂表达式
+{{table1.data.length}} 条数据
+{{input1.value.toUpperCase()}}
 ```
 
 ---
@@ -878,7 +953,7 @@ export { appsRouter };
 ### Phase 2: 编辑器 (Week 3-4)
 
 - [x] 拖拽画布 (原生拖放 + 组件移动/调整大小)
-- [x] 网格吸附系统 (24列 × 100行，参考 OpenBlocks)
+- [x] 网格吸附系统 (24列 × 100行)
 - [x] 网格限制 (24列 × 100行，组件不能超出边界)
 - [x] 组件面板 (分类展示、拖放支持、点击添加)
 - [x] 属性面板 (布局控制、动态属性表单、组件名称编辑)
@@ -920,6 +995,12 @@ export { appsRouter };
   - [x] Modal 弹窗容器 (显示/隐藏控制、遮罩层、关闭按钮)
 - [x] 数据源连接 (REST API)
 - [x] 查询编辑器
+- [x] 表达式编辑器
+  - [x] ExpressionEditor 组件 (支持 {{}} 语法)
+  - [x] 自动补全 (组件名、属性名提示)
+  - [x] 实时求值预览 (输入时显示计算结果)
+  - [x] 画布组件表达式求值 (组件渲染时自动计算表达式)
+  - [x] 组件间数据引用 (如 {{input1.value}}, {{table1.data}})
 - [ ] 自定义组件上传
 - [ ] 主题系统
 
@@ -1038,6 +1119,6 @@ bun run server
 
 ---
 
-> 文档版本: v0.2.0  
-> 最后更新: 2026-01-12  
+> 文档版本: v0.3.0  
+> 最后更新: 2026-01-15  
 > 作者: LuTing & AI Assistant

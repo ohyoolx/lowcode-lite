@@ -17,12 +17,21 @@ import {
   AlertCircle,
   CheckCircle2,
   Settings2,
+  Database,
+  Code2,
+  Zap,
 } from 'lucide-react';
 import type { QueryDefinition, RestApiConfig, HttpMethod, BodyType, KeyValuePair } from '@lowcode-lite/shared';
+import { TempStateEditor } from './TempStateEditor';
+import { TransformerEditor } from './TransformerEditor';
+import { DataResponderEditor } from './DataResponderEditor';
 
 interface QueryPanelProps {
   className?: string;
 }
+
+// Tab 类型
+type DataPanelTab = 'queries' | 'states' | 'transformers' | 'responders';
 
 // HTTP 方法选项
 const HTTP_METHODS: { value: HttpMethod; label: string; color: string }[] = [
@@ -465,14 +474,18 @@ function QueryEditor({
   );
 }
 
-// 主面板
-export function QueryPanel({ className }: QueryPanelProps) {
+// Query 列表面板（内部组件）
+function QueryListPanel({ 
+  selectedQueryId,
+  onSelectQuery,
+}: {
+  selectedQueryId: string | null;
+  onSelectQuery: (id: string | null) => void;
+}) {
   useSignals();
-
+  
   const appContext = useCoreContext();
-  const editor = useEditor();
-  const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
-
+  
   // 获取所有查询 - 直接访问 signal.value 以触发响应式更新
   const queries = appContext.queriesSignal.value;
   
@@ -483,13 +496,13 @@ export function QueryPanel({ className }: QueryPanelProps) {
 
   const handleCreateQuery = () => {
     const query = appContext.createRestApiQuery();
-    setSelectedQueryId(query.id);
+    onSelectQuery(query.id);
   };
 
   const handleDeleteQuery = (id: string) => {
     appContext.deleteQuery(id);
     if (selectedQueryId === id) {
-      setSelectedQueryId(null);
+      onSelectQuery(null);
     }
   };
 
@@ -504,7 +517,7 @@ export function QueryPanel({ className }: QueryPanelProps) {
   };
 
   return (
-    <div className={cn('flex h-full', className)}>
+    <div className="flex h-full">
       {/* 左侧列表 */}
       <div className="w-48 border-r flex flex-col bg-background/50">
         <div className="p-2 border-b flex items-center justify-between">
@@ -540,7 +553,7 @@ export function QueryPanel({ className }: QueryPanelProps) {
                 key={query.id}
                 query={query}
                 isSelected={selectedQueryId === query.id}
-                onSelect={() => setSelectedQueryId(query.id)}
+                onSelect={() => onSelectQuery(query.id)}
                 onDelete={() => handleDeleteQuery(query.id)}
               />
             ))
@@ -566,6 +579,101 @@ export function QueryPanel({ className }: QueryPanelProps) {
               点击左侧查询或新建一个
             </p>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 主面板（带 Tab 切换）
+export function QueryPanel({ className }: QueryPanelProps) {
+  useSignals();
+
+  const [activeTab, setActiveTab] = useState<DataPanelTab>('queries');
+  const [selectedQueryId, setSelectedQueryId] = useState<string | null>(null);
+
+  return (
+    <div className={cn('flex flex-col h-full', className)}>
+      {/* Tab 切换 */}
+      <div className="flex border-b bg-background/80 flex-shrink-0">
+        <button
+          onClick={() => setActiveTab('queries')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors relative',
+            activeTab === 'queries'
+              ? 'text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Globe className="h-3.5 w-3.5" />
+          查询
+          {activeTab === 'queries' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('states')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors relative',
+            activeTab === 'states'
+              ? 'text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Database className="h-3.5 w-3.5" />
+          状态
+          {activeTab === 'states' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('transformers')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors relative',
+            activeTab === 'transformers'
+              ? 'text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Code2 className="h-3.5 w-3.5" />
+          转换器
+          {activeTab === 'transformers' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab('responders')}
+          className={cn(
+            'flex items-center gap-1.5 px-4 py-2 text-xs font-medium transition-colors relative',
+            activeTab === 'responders'
+              ? 'text-primary'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          <Zap className="h-3.5 w-3.5" />
+          响应器
+          {activeTab === 'responders' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+          )}
+        </button>
+      </div>
+
+      {/* Tab 内容 */}
+      <div className="flex-1 overflow-hidden">
+        {activeTab === 'queries' && (
+          <QueryListPanel 
+            selectedQueryId={selectedQueryId}
+            onSelectQuery={setSelectedQueryId}
+          />
+        )}
+        {activeTab === 'states' && (
+          <TempStateEditor />
+        )}
+        {activeTab === 'transformers' && (
+          <TransformerEditor />
+        )}
+        {activeTab === 'responders' && (
+          <DataResponderEditor />
         )}
       </div>
     </div>

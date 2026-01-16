@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import { TempStateDefinitionSchema } from './tempState';
+import { TransformerDefinitionSchema } from './transformer';
+import { DataResponderDefinitionSchema } from './dataResponder';
 
 // 组件位置
 export const PositionSchema = z.object({
@@ -20,16 +23,10 @@ export const ComponentSchema = z.object({
 });
 export type ComponentData = z.infer<typeof ComponentSchema>;
 
-// 查询 Schema
-export const QuerySchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  datasourceId: z.string(),
-  config: z.record(z.any()),
-  runOnInit: z.boolean().optional(),
-  cacheTime: z.number().optional(),
-});
-export type QueryData = z.infer<typeof QuerySchema>;
+// 查询 Schema - 使用 query.ts 中的 QueryDefinitionSchema
+import { QueryDefinitionSchema } from './query';
+export { QueryDefinitionSchema as QuerySchema };
+export type QueryData = z.infer<typeof QueryDefinitionSchema>;
 
 // 页面 Schema
 export const PageSchema = z.object({
@@ -45,7 +42,10 @@ export const AppSchema = z.object({
   version: z.string(),
   pages: z.array(PageSchema),
   globalState: z.record(z.any()).optional(),
-  queries: z.array(QuerySchema).optional(),
+  queries: z.array(QueryDefinitionSchema).optional(),
+  tempStates: z.array(TempStateDefinitionSchema).optional(),
+  transformers: z.array(TransformerDefinitionSchema).optional(),
+  dataResponders: z.array(DataResponderDefinitionSchema).optional(),
   theme: z.record(z.any()).optional(),
 });
 export type AppData = z.infer<typeof AppSchema>;
@@ -64,6 +64,9 @@ export function createDefaultAppSchema(): AppData {
     ],
     globalState: {},
     queries: [],
+    tempStates: [],
+    transformers: [],
+    dataResponders: [],
     theme: {},
   };
 }

@@ -1,8 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import { cn } from '@/lib/utils';
 import { useCoreContext, useEditor } from '@/context/AppContext';
-import { componentRegistry } from '@lowcode-lite/core';
+import { componentRegistry, evaluateTemplate } from '@lowcode-lite/core';
 import type { ComponentData } from '@lowcode-lite/shared';
 import {
   type GridConfig,
@@ -162,6 +162,9 @@ export function ComponentWrapper({
     editor.selectedComponentId.value = data.id;
     setIsDragging(true);
     
+    // 拖拽开始时记录历史（只记录一次）
+    appContext.recordHistory(`移动组件 ${data.name}`);
+    
     // 记录初始拖拽偏移
     const rect = wrapperRef.current?.getBoundingClientRect();
     const initialOffset = rect ? {
@@ -235,6 +238,7 @@ export function ComponentWrapper({
           }
         }
         
+        // 跨容器移动不记录历史（开始时已记录）
         appContext.moveComponent(data.id, targetContainerId ?? undefined, { x: newX, y: newY });
       } else {
         // 在同一容器内移动，应用碰撞检测
@@ -260,7 +264,7 @@ export function ComponentWrapper({
           // 应用碰撞检测
           const adjustedComponents = cascadeLayout(siblings, updatedComponent);
           
-          // 批量更新组件位置
+          // 批量更新组件位置（不记录历史）
           adjustedComponents.forEach(comp => {
             if (comp.id === data.id) return;
             
@@ -268,7 +272,7 @@ export function ComponentWrapper({
             if (original && original.position.y !== comp.position.y) {
               appContext.updateComponent(comp.id, {
                 position: comp.position,
-              });
+              }, false);
             }
           });
         }
@@ -289,6 +293,9 @@ export function ComponentWrapper({
     e.stopPropagation();
 
     setIsResizing(true);
+    
+    // 调整大小开始时记录历史（只记录一次）
+    appContext.recordHistory(`调整组件尺寸 ${data.name}`);
     
     // 记录初始鼠标位置
     const startMouseX = e.clientX;
@@ -348,6 +355,7 @@ export function ComponentWrapper({
       const finalX = direction === 'left' ? Math.max(0, newX) : startPosition.x;
       const finalY = direction === 'top' ? Math.max(0, newY) : startPosition.y;
       
+      // 调整大小过程中不记录历史（开始时已记录）
       appContext.updateComponent(data.id, {
         position: {
           x: finalX,
@@ -355,7 +363,7 @@ export function ComponentWrapper({
           w: clamped.w,
           h: clamped.h,
         },
-      });
+      }, false);
     };
     
     const handleResizeEnd = () => {
@@ -456,13 +464,14 @@ export function ComponentWrapper({
       const clampedX = Math.max(0, Math.min(x, maxGridX));
       const clampedY = Math.max(0, Math.min(y, maxGridY));
 
+      // 拖拽过程中不记录历史（开始时已记录）
       appContext.updateComponent(data.id, {
         position: {
           ...data.position,
           x: clampedX,
           y: clampedY,
         },
-      });
+      }, false);
     };
 
     // 只处理 mousemove，mouseup 在 handleMouseDown 中处理
@@ -491,11 +500,32 @@ export function ComponentWrapper({
     );
   }
 
-  // 解析 props
-  const resolvedProps: Record<string, any> = {};
-  for (const [key, propDef] of Object.entries(definition.props)) {
-    resolvedProps[key] = data.props[key] ?? propDef.default;
-  }
+  // 解析 props（支持表达式求值）
+  // 直接访问 exposedValues.value 来建立响应式依赖
+  // 当 exposedValues 变化时（如组件名称修改），会自动触发重新渲染
+  const expressionContext = appContext.exposedValues.value;
+  
+  const resolvedProps: Record<string, any> = useMemo(() => {
+    const result: Record<string, any> = {};
+    
+    for (const [key, propDef] of Object.entries(definition.props)) {
+      const rawValue = data.props[key] ?? propDef.default;
+      
+      // 如果是字符串类型且包含表达式 {{}}，进行求值
+      if (typeof rawValue === 'string' && rawValue.includes('{{') && rawValue.includes('}}')) {
+        try {
+          result[key] = evaluateTemplate(rawValue, expressionContext);
+        } catch (error) {
+          console.warn(`Expression evaluation failed for ${key}:`, error);
+          result[key] = rawValue; // 求值失败时保持原值
+        }
+      } else {
+        result[key] = rawValue;
+      }
+    }
+    
+    return result;
+  }, [definition.props, data.props, expressionContext]);
 
   // 创建组件事件处理器
   const handlers = {

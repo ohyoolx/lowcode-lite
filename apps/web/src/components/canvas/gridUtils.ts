@@ -1,6 +1,5 @@
 /**
  * 网格布局工具函数
- * 参考 OpenBlocks 的网格计算逻辑
  */
 
 // 默认配置
@@ -26,8 +25,8 @@ export const MIN_COMPONENT_WIDTH = 2;   // 最小宽度 2 列
 export const MIN_COMPONENT_HEIGHT = 2;  // 最小高度 2 行
 
 // 网格线显示配置
-// 水平线间距与组件最小高度一致，便于用户直观理解最小单位
-export const GRID_LINE_ROW_INTERVAL = MIN_COMPONENT_HEIGHT;  // 每 2 行画一条线 (2×16=32px)
+// 水平线间距与实际吸附单位一致（1 行 = 16px），便于用户直观理解吸附位置
+export const GRID_LINE_ROW_INTERVAL = 1;  // 每 1 行画一条线 (1×16=16px)，与吸附间隔一致
 
 export interface GridConfig {
   cols: number;

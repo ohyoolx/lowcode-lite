@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Settings2, Trash2, Copy, Move, Maximize2 } from 'lucide-react';
 import type { PropDefinition } from '@lowcode-lite/shared';
 import { GRID_COLS, MIN_COMPONENT_WIDTH, MIN_COMPONENT_HEIGHT, calculateRequiredRows } from '@/components/canvas/gridUtils';
+import { ExpressionEditor } from '@/components/ui/ExpressionEditor';
 
 interface PropertyPanelProps {
   className?: string;
@@ -19,12 +20,14 @@ function PropEditor({
   propDef,
   value,
   onChange,
+  componentName,
 }: {
   propKey: string;
   label?: string;
   propDef: PropDefinition;
   value: any;
   onChange: (value: any) => void;
+  componentName?: string;
 }) {
   const displayLabel = label || propKey;
   
@@ -32,10 +35,11 @@ function PropEditor({
     switch (propDef.type) {
       case 'string':
         return (
-          <Input
+          <ExpressionEditor
             value={value ?? propDef.default ?? ''}
-            onChange={(e) => onChange(e.target.value)}
-            className="h-8"
+            onChange={onChange}
+            placeholder={`输入${displayLabel}或表达式 {{}}`}
+            currentComponentName={componentName}
           />
         );
 
@@ -354,6 +358,7 @@ export function PropertyPanel({ className }: PropertyPanelProps) {
                       propDef={propDef}
                       value={selectedComponent.props[key]}
                       onChange={(value) => handlePropChange(key, value)}
+                      componentName={selectedComponent.name}
                     />
                   );
                 })}

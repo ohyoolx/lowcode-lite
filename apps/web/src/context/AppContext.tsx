@@ -1,12 +1,15 @@
 import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { signal, type Signal } from '@preact/signals-react';
 import type { AppContext as CoreAppContext } from '@lowcode-lite/core';
+import type { ComponentData } from '@lowcode-lite/shared';
 
 interface EditorState {
   selectedComponentId: Signal<string | null>;
   isDragging: Signal<boolean>;
   isPreviewMode: Signal<boolean>;
   showSettings: Signal<boolean>;
+  /** 剪贴板中的组件数据（用于复制粘贴） */
+  clipboard: Signal<ComponentData | null>;
 }
 
 interface AppContextValue {
@@ -23,6 +26,7 @@ function createEditorState(): EditorState {
     isDragging: signal(false),
     isPreviewMode: signal(false),
     showSettings: signal(false),
+    clipboard: signal<ComponentData | null>(null),
   };
 }
 

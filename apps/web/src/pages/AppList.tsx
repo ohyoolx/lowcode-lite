@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { appsApi, type AppListItem } from '@/api';
@@ -9,11 +10,12 @@ import {
   MoreVertical,
   Trash2,
   Edit,
-  Copy,
   ExternalLink,
   RefreshCw,
   LayoutGrid,
   Blocks,
+  Palette,
+  Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +27,9 @@ export function AppList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [creating, setCreating] = useState(false);
   const [newAppName, setNewAppName] = useState('');
+  // 重命名相关状态
+  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   // 加载应用列表
   const loadApps = async () => {
@@ -65,10 +70,32 @@ export function AppList() {
 
     try {
       await appsApi.delete(id);
+      toast.success('应用已删除');
       loadApps();
     } catch (err) {
-      alert(err instanceof Error ? err.message : '删除失败');
+      toast.error(err instanceof Error ? err.message : '删除失败');
     }
+  };
+
+  // 重命名应用
+  const handleRename = async () => {
+    if (!renaming || !renameValue.trim()) return;
+
+    try {
+      await appsApi.update(renaming.id, { name: renameValue.trim() });
+      toast.success('重命名成功');
+      setRenaming(null);
+      setRenameValue('');
+      loadApps();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : '重命名失败');
+    }
+  };
+
+  // 打开重命名弹窗
+  const openRenameDialog = (app: AppListItem) => {
+    setRenaming({ id: app.id, name: app.name });
+    setRenameValue(app.name);
   };
 
   // 过滤应用
@@ -97,6 +124,12 @@ export function AppList() {
             </div>
 
             <div className="flex items-center gap-3">
+              <Link to="/playground">
+                <Button variant="outline" size="sm">
+                  <Palette className="h-4 w-4 mr-1" />
+                  组件调试
+                </Button>
+              </Link>
               <Button variant="outline" size="sm" onClick={loadApps} disabled={loading}>
                 <RefreshCw className={cn('h-4 w-4 mr-1', loading && 'animate-spin')} />
                 刷新
@@ -165,6 +198,7 @@ export function AppList() {
                 app={app}
                 onEdit={() => navigate(`/editor/${app.id}`)}
                 onDelete={() => handleDelete(app.id, app.name)}
+                onRename={() => openRenameDialog(app)}
               />
             ))}
           </div>
@@ -201,6 +235,30 @@ export function AppList() {
           </div>
         </div>
       )}
+
+      {/* Rename App Modal */}
+      {renaming && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md mx-4">
+            <h2 className="text-lg font-semibold mb-4">重命名应用</h2>
+            <Input
+              placeholder="输入新的应用名称"
+              value={renameValue}
+              onChange={(e) => setRenameValue(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+              autoFocus
+            />
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setRenaming(null)}>
+                取消
+              </Button>
+              <Button onClick={handleRename} disabled={!renameValue.trim()}>
+                确定
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -210,10 +268,12 @@ function AppCard({
   app,
   onEdit,
   onDelete,
+  onRename,
 }: {
   app: AppListItem;
   onEdit: () => void;
   onDelete: () => void;
+  onRename: () => void;
 }) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -278,6 +338,16 @@ function AppCard({
                   >
                     <Edit className="h-4 w-4" />
                     编辑
+                  </button>
+                  <button
+                    className="w-full px-3 py-2 text-sm text-left hover:bg-slate-100 flex items-center gap-2"
+                    onClick={() => {
+                      setShowMenu(false);
+                      onRename();
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    重命名
                   </button>
                   <button
                     className="w-full px-3 py-2 text-sm text-left hover:bg-slate-100 flex items-center gap-2 text-red-600"

@@ -93,6 +93,9 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 48px 1fr;
+  grid-template-areas:
+    "header"
+    "main";
   height: 100vh;
   overflow: hidden;
 }

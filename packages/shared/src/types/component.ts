@@ -56,6 +56,11 @@ export interface CompDefinition<P extends PropDefs = PropDefs> {
   description?: string;
   props: P;
   expose?: ExposeConfig<P>;
+  /** 
+   * 计算暴露值 - 用于暴露经过计算/转换的值
+   * 例如：将 JSON 字符串解析为对象后再暴露
+   */
+  exposeComputed?: (props: ResolvedProps<P>) => Record<string, unknown>;
   defaultSize?: { w: number; h: number };
   /** 是否为容器组件（可以嵌套子组件） */
   isContainer?: boolean;

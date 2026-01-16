@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useSignals } from '@preact/signals-react/runtime';
 import { cn } from '@/lib/utils';
 import { useCoreContext, useEditor } from '@/context/AppContext';
-import { componentRegistry } from '@lowcode-lite/core';
+import { componentRegistry, evaluateTemplate } from '@lowcode-lite/core';
 import { generateId, generateComponentName, type ComponentData } from '@lowcode-lite/shared';
 import { createFormInitialChildren } from '@/utils/formUtils';
 import { ComponentWrapper } from './ComponentWrapper';
@@ -654,15 +654,28 @@ export function Canvas({ className }: CanvasProps) {
             </div>
           )}
           
-          {/* 覆盖层组件渲染 - 只覆盖画布区域，参考 OpenBlocks 实现 */}
+          {/* 覆盖层组件渲染 */}
           {overlayComponents.map((comp) => {
             const definition = componentRegistry.get(comp.type);
             if (!definition) return null;
             
-            // 解析 props
+            // 解析 props（支持表达式求值）
+            // 直接访问 exposedValues.value 建立响应式依赖
+            const expressionContext = appContext.exposedValues.value;
             const resolvedProps: Record<string, any> = {};
             for (const [key, propDef] of Object.entries(definition.props)) {
-              resolvedProps[key] = comp.props[key] ?? propDef.default;
+              const rawValue = comp.props[key] ?? propDef.default;
+              // 如果是字符串类型且包含表达式 {{}}，进行求值
+              if (typeof rawValue === 'string' && rawValue.includes('{{') && rawValue.includes('}}')) {
+                try {
+                  resolvedProps[key] = evaluateTemplate(rawValue, expressionContext);
+                } catch (error) {
+                  console.warn(`Expression evaluation failed for ${key}:`, error);
+                  resolvedProps[key] = rawValue;
+                }
+              } else {
+                resolvedProps[key] = rawValue;
+              }
             }
             
             // 检查组件本身或其子组件是否被选中
@@ -726,7 +739,7 @@ export function Canvas({ className }: CanvasProps) {
                     }
                   }}
                 >
-                  {/* Modal 内容，参考 OpenBlocks 的 ModalWrapper */}
+                  {/* Modal 内容 */}
                   <ModalContent 
                     comp={comp}
                     resolvedProps={resolvedProps}

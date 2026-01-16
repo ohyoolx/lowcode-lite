@@ -290,11 +290,18 @@ export class QueryManager {
     this._definitions = signal<QueryDefinition[]>([]);
 
     // 计算所有暴露的值
+    // 注意：需要订阅 _definitions 以便在添加/删除查询时触发重新计算
     this.exposedValues = computed(() => {
+      // 订阅 definitions 变化，确保添加/删除查询时触发重新计算
+      const definitions = this._definitions.value;
+      
       const result: Record<string, QueryExposedValues<unknown>> = {};
-      for (const [id, instance] of this._queries) {
-        // 使用 name 作为键，方便表达式引用
-        result[instance.definition.name] = instance.getExposedValues();
+      for (const def of definitions) {
+        const instance = this._queries.get(def.id);
+        if (instance) {
+          // 使用 name 作为键，方便表达式引用
+          result[instance.definition.name] = instance.getExposedValues();
+        }
       }
       return result;
     });
